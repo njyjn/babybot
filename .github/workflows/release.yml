@@ -12,14 +12,11 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  tag-and-release:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-    outputs:
-      tag: ${{ steps.version.outputs.TAG }}
-      tag_exists: ${{ steps.check_tag.outputs.TAG_EXISTS }}
 
     steps:
       - name: Checkout repository
@@ -27,59 +24,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version from config.yaml
+      - name: Get version from config.yaml and create tag
         id: version
         run: |
           VERSION=$(grep '^version:' config.yaml | sed 's/version: "\(.*\)"/\1/')
+          TAG="v$VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.VERSION }}" >/dev/null 2>&1; then
-            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          
+          # Create and push tag if it doesn't exist
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "TAG_CREATED=true" >> $GITHUB_OUTPUT
           else
-            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "TAG_CREATED=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Create and push git tag
-        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.version.outputs.TAG }}
-          git push origin ${{ steps.version.outputs.TAG }}
-
-      - name: Create GitHub Release
-        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          name: v${{ steps.version.outputs.VERSION }}
-          body: |
-            Version ${{ steps.version.outputs.VERSION }}
-            Docker Image: `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.TAG }}`
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-and-push:
-    needs: tag-and-release
-    if: needs.tag-and-release.outputs.tag_exists == 'false'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.tag-and-release.outputs.tag }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -97,13 +59,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.VERSION }}
             type=sha
             type=raw,value=latest
 
       - name: Build and push Docker image
+        if: steps.version.outputs.TAG_CREATED == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -119,6 +81,7 @@ jobs:
 
   notify-addons-repo:
     needs: build-and-push
+    if: success()
     runs-on: ubuntu-latest
 
     steps:
