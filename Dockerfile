@@ -8,8 +8,8 @@ WORKDIR /app
 ARG DATABASE_URL=file:./data/babybot.db
 ENV DATABASE_URL=${DATABASE_URL}
 
-# Install CA certificates, jq, and build dependencies for sqlite3
-RUN apk add --no-cache ca-certificates jq python3 python3-dev py3-setuptools make g++ gcc
+# Install CA certificates, OpenSSL (required by Prisma engines), jq, and build dependencies for sqlite3
+RUN apk add --no-cache ca-certificates openssl jq python3 python3-dev py3-setuptools make g++ gcc
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
