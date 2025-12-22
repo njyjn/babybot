@@ -1,5 +1,5 @@
-# Use the official Node.js image as the base image
-FROM node:25-alpine
+# Use the official Node.js image (Debian-based for better sqlite3 support)
+FROM node:25-slim
 
 # Set the working directory
 WORKDIR /app
@@ -8,8 +8,14 @@ WORKDIR /app
 ARG DATABASE_URL=file:./data/babybot.db
 ENV DATABASE_URL=${DATABASE_URL}
 
-# Install CA certificates, OpenSSL (required by Prisma engines), jq, and build dependencies for sqlite3
-RUN apk add --no-cache ca-certificates openssl jq python3 python3-dev py3-setuptools make g++ gcc
+# Install build dependencies for sqlite3 and native modules
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
