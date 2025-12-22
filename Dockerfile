@@ -4,6 +4,10 @@ FROM node:25-alpine
 # Set the working directory
 WORKDIR /app
 
+# Allow DATABASE_URL to be provided at build time (defaults to local sqlite file)
+ARG DATABASE_URL=file:./data/babybot.db
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Install CA certificates, jq, and build dependencies for sqlite3
 RUN apk add --no-cache ca-certificates jq python3 python3-dev py3-setuptools make g++ gcc
 
