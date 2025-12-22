@@ -1,5 +1,5 @@
-# Use Debian-based Node.js for better native module support on ARM
-FROM node:25-slim
+# Use Alpine for smaller image
+FROM node:18-alpine
 
 WORKDIR /app
 

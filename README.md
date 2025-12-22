@@ -15,7 +15,7 @@ Track your baby's feeding times, amounts, and patterns with this simple web appl
 
 - **Frontend**: Next.js 14 with React
 - **Backend**: Next.js API Routes
-- **Database**: SQLite with Prisma ORM v7 (driver adapter)
+- **Database**: SQLite with Prisma ORM v6
 - **TypeScript**: Full type safety
 
 ## Getting Started
@@ -40,16 +40,16 @@ cd babybot
 npm install
 ```
 
-3. Set up the database (Prisma v7):
+3. Set up the database:
 
 ```bash
-npx prisma migrate dev --config ./prisma.config.ts
+npx prisma migrate dev
 ```
 
 4. (Optional) Seed initial data:
 
 ```bash
-npx prisma db seed --config ./prisma.config.ts
+npx prisma db seed
 ```
 
 5. Start the development server:
@@ -58,35 +58,6 @@ npx prisma db seed --config ./prisma.config.ts
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Database Schema
-
-### Baby
-
-- `id`: Auto-increment primary key
-- `name`: Unique baby name
-- `birthDate`: Date of birth
-- `createdAt`, `updatedAt`: Timestamps
-
-### FeedType
-
-- `id`: Auto-increment primary key
-- `name`: Type name (e.g., "Breast", "Bottle", "Formula", "Solid")
-- `createdAt`, `updatedAt`: Timestamps
-
-### Feed
-
-- `id`: Auto-increment primary key
-- `babyId`: Reference to Baby
-- `feedTypeId`: Reference to FeedType
-- `startTime`: When feeding started
-- `endTime`: When feeding ended (optional, for ongoing feeds)
-- `amountMl`: Amount in milliliters (for bottles/formula)
-- `side`: Which side for breastfeeding (Left/Right/Both)
-- `notes`: Custom notes
-- `createdAt`, `updatedAt`: Timestamps
-
 ## Development Commands
 
 ```bash
@@ -94,8 +65,8 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
-npx prisma studio --config ./prisma.config.ts    # Open Prisma Studio (visual DB editor)
-npx prisma migrate dev --config ./prisma.config.ts # Create/apply new migration
+npx prisma studio   # Open Prisma Studio (visual DB editor)
+npx prisma migrate dev # Create/apply new migration
 ```
 
 ## Project Structure
