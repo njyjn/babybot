@@ -1,17 +1,25 @@
-name: Auto-tag Release
+name: Release and Build Docker
 
 on:
   push:
-    # branches:
-    #   - main
+    branches:
+      - main
     paths:
       - "config.yaml"
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  tag:
+  tag-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
+    outputs:
+      tag: ${{ steps.version.outputs.TAG }}
+      tag_exists: ${{ steps.check_tag.outputs.TAG_EXISTS }}
 
     steps:
       - name: Checkout repository
@@ -52,7 +60,72 @@ jobs:
           body: |
             Version ${{ steps.version.outputs.VERSION }}
             Docker Image: `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.TAG }}`
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-push:
+    needs: tag-and-release
+    if: needs.tag-and-release.outputs.tag_exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      DATABASE_URL: file:./data/babybot.db
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag-and-release.outputs.tag }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  notify-addons-repo:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger parent repo update
+        run: |
+          curl -X POST https://api.github.com/repos/njyjn/ha-addons/dispatches \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -d '{"event_type":"babybot-released"}'
