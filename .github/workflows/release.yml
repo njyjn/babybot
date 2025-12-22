@@ -35,6 +35,14 @@ jobs:
             echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Create and push git tag
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.TAG }}
+          git push origin ${{ steps.version.outputs.TAG }}
+
       - name: Create GitHub Release
         if: steps.check_tag.outputs.TAG_EXISTS == 'false'
         uses: softprops/action-gh-release@v1
