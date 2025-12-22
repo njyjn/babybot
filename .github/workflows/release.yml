@@ -109,8 +109,6 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64
-          build-args: |
-            DATABASE_URL=${{ env.DATABASE_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
