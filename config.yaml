@@ -1,0 +1,20 @@
+name: "BabyBot"
+version: "0.0.1"
+slug: "babybot"
+description: "Baby feeding tracker"
+image: ghcr.io/njyjn/babybot
+startup: services
+boot: auto
+host_network: true
+ingress: false
+map:
+  - type: share
+    read_only: false
+options:
+  database_url: ""
+  port: 3001
+schema:
+  database_url: "str"
+  port: "port"
+arch:
+  - aarch64
