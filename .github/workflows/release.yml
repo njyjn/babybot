@@ -2,8 +2,8 @@ name: Auto-tag Release
 
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
     paths:
       - 'config.yaml'
 
@@ -40,7 +40,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.TAG }}
-          name: Release ${{ steps.version.outputs.VERSION }}
+          name: v${{ steps.version.outputs.VERSION }}
           body: |
             Version ${{ steps.version.outputs.VERSION }}
             Docker Image: `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.TAG }}`
