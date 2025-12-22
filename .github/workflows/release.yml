@@ -60,7 +60,7 @@ jobs:
           body: |
             Version ${{ steps.version.outputs.VERSION }}
             Docker Image: `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.TAG }}`
-          draft: true
+          draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
       contents: read
       packages: write
     env:
-      DATABASE_URL: file:./data/babybot.db
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout repository
@@ -109,6 +109,8 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64
+          build-args: |
+            DATABASE_URL=${{ env.DATABASE_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
