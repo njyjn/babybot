@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Baby {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  birthDate DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  feeds     Feed[]
+}
+
+model FeedType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // e.g., "Breast", "Bottle", "Formula", "Solid"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  feeds     Feed[]
+}
+
+model Feed {
+  id           Int       @id @default(autoincrement())
+  babyId       Int
+  feedTypeId   Int
+  startTime    DateTime
+  endTime      DateTime?
+  amountMl     Float?    // Amount in milliliters (for bottles/formula)
+  side         String?   // "Left", "Right", "Both" (for breastfeeding)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  baby         Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  feedType     FeedType  @relation(fields: [feedTypeId], references: [id], onDelete: Restrict)
+
+  @@index([babyId])
+  @@index([startTime])
+}
