@@ -22,33 +22,38 @@ Track your baby's feeding times, amounts, and patterns with this simple web appl
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <your-repo-url>
 cd babybot
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Set up the database (Prisma v7):
+
 ```bash
 npx prisma migrate dev --config ./prisma.config.ts
 ```
 
 4. (Optional) Seed initial data:
+
 ```bash
 npx prisma db seed --config ./prisma.config.ts
 ```
 
 5. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -58,17 +63,20 @@ npm run dev
 ## Database Schema
 
 ### Baby
+
 - `id`: Auto-increment primary key
 - `name`: Unique baby name
 - `birthDate`: Date of birth
 - `createdAt`, `updatedAt`: Timestamps
 
 ### FeedType
+
 - `id`: Auto-increment primary key
 - `name`: Type name (e.g., "Breast", "Bottle", "Formula", "Solid")
 - `createdAt`, `updatedAt`: Timestamps
 
 ### Feed
+
 - `id`: Auto-increment primary key
 - `babyId`: Reference to Baby
 - `feedTypeId`: Reference to FeedType

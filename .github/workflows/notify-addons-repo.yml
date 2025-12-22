@@ -3,7 +3,7 @@ name: Notify Add-ons Repo
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   release:
     types: [published]
 
