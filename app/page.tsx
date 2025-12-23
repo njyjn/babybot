@@ -35,7 +35,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedBabyId, setSelectedBabyId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"log" | "summary">("summary");
-  const [showButtonPanel, setShowButtonPanel] = useState(true);
+  const [showButtonPanel, setShowButtonPanel] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
 
   const toLocalDateString = (date: Date) => {
     const year = date.getFullYear();
@@ -251,6 +252,36 @@ export default function Home() {
     const h = String(hours).padStart(2, "0");
     const m = String(minutes).padStart(2, "0");
     setCustomTime(`${h}:${m}`);
+  };
+
+  const handleDrawerMouseDown = (e: React.MouseEvent) => {
+    setDragStartY(e.clientY);
+  };
+
+  const handleDrawerTouchStart = (e: React.TouchEvent) => {
+    setDragStartY(e.touches[0].clientY);
+  };
+
+  const handleDrawerMouseMove = (e: React.MouseEvent) => {
+    if (dragStartY === 0) return;
+    const deltaY = dragStartY - e.clientY;
+    if (deltaY > 50 && !showButtonPanel) {
+      setShowButtonPanel(true);
+      setDragStartY(0);
+    }
+  };
+
+  const handleDrawerTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY === 0) return;
+    const deltaY = dragStartY - e.touches[0].clientY;
+    if (deltaY > 50 && !showButtonPanel) {
+      setShowButtonPanel(true);
+      setDragStartY(0);
+    }
+  };
+
+  const handleDrawerEnd = () => {
+    setDragStartY(0);
   };
 
   return (
@@ -866,16 +897,24 @@ export default function Home() {
       {/* Action Buttons */}
       <div
         style={{
-          padding: showButtonPanel ? "1.5rem 2rem" : "0.5rem 2rem",
+          padding: showButtonPanel ? "1.5rem 2rem" : "3rem 2rem",
           borderTop: "2px solid #e0e0e0",
           backgroundColor: "#fff",
           boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
           transition: "padding 0.3s ease-in-out, max-height 0.3s ease-in-out",
-          maxHeight: showButtonPanel ? "1000px" : "50px",
+          maxHeight: showButtonPanel ? "1000px" : "80px",
           overflow: "hidden",
           cursor: "pointer",
+          userSelect: "none",
         }}
         onClick={() => setShowButtonPanel(!showButtonPanel)}
+        onMouseDown={handleDrawerMouseDown}
+        onMouseMove={handleDrawerMouseMove}
+        onMouseUp={handleDrawerEnd}
+        onMouseLeave={handleDrawerEnd}
+        onTouchStart={handleDrawerTouchStart}
+        onTouchMove={handleDrawerTouchMove}
+        onTouchEnd={handleDrawerEnd}
       >
         {/* Drawer Handle */}
         <div
