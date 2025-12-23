@@ -1,5 +1,5 @@
 name: "BabyBot"
-version: "0.1.0"
+version: "0.1.1"
 slug: "babybot"
 description: "Baby feeding tracker"
 image: ghcr.io/njyjn/babybot
