@@ -138,9 +138,9 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const feedTime = customTime
-        ? new Date(`${toLocalDateString(selectedDate)}T${customTime}`)
-        : new Date();
+      // Always use current time when button is pressed
+      const feedTime = new Date();
+
       // Use milkAmount for Milk feeds, null for other feeds
       const amountValue = feedType === "Milk" ? milkAmount : null;
 
@@ -240,6 +240,11 @@ export default function Home() {
     const compare = new Date(selectedDate);
     compare.setHours(0, 0, 0, 0);
     return compare.getTime() === today.getTime();
+  };
+
+  const updateTime = () => {
+    const now = new Date();
+    setCustomTime(now.toTimeString().slice(0, 5));
   };
 
   const handleTimeChange = (hours: number, minutes: number) => {
@@ -903,7 +908,10 @@ export default function Home() {
               {/* Time & Amount Picker Toggles */}
               <div style={{ marginBottom: "1rem" }}>
                 <button
-                  onClick={() => setShowTimePicker(!showTimePicker)}
+                  onClick={() => {
+                    updateTime();
+                    setShowTimePicker(!showTimePicker);
+                  }}
                   style={{
                     padding: "0.5rem 1.25rem",
                     backgroundColor: showTimePicker ? "#4a90e2" : "#e8f4fd",
@@ -973,9 +981,10 @@ export default function Home() {
                   className="milk-controls"
                 >
                   <button
-                    onClick={() =>
-                      setMilkAmount((prev) => Math.max(10, prev - 10))
-                    }
+                    onClick={() => {
+                      updateTime();
+                      setMilkAmount((prev) => Math.max(10, prev - 10));
+                    }}
                     disabled={loading}
                     style={{
                       padding: "1.5rem 1rem",
@@ -1011,7 +1020,10 @@ export default function Home() {
                     −
                   </button>
                   <button
-                    onClick={() => handleAddFeed("Milk")}
+                    onClick={() => {
+                      updateTime();
+                      handleAddFeed("Milk");
+                    }}
                     disabled={loading}
                     style={{
                       padding: "1.5rem 1rem",
@@ -1055,7 +1067,10 @@ export default function Home() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setMilkAmount((prev) => prev + 10)}
+                    onClick={() => {
+                      updateTime();
+                      setMilkAmount((prev) => prev + 10);
+                    }}
                     disabled={loading}
                     style={{
                       padding: "1.5rem 1rem",
@@ -1092,7 +1107,10 @@ export default function Home() {
                   </button>
                 </div>
                 <button
-                  onClick={() => handleAddFeed("Feed")}
+                  onClick={() => {
+                    updateTime();
+                    handleAddFeed("Feed");
+                  }}
                   disabled={loading}
                   style={{
                     padding: "1.5rem 1rem",
