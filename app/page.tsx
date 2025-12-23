@@ -35,6 +35,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedBabyId, setSelectedBabyId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"log" | "summary">("summary");
+  const [showButtonPanel, setShowButtonPanel] = useState(true);
 
   const toLocalDateString = (date: Date) => {
     const year = date.getFullYear();
@@ -860,241 +861,274 @@ export default function Home() {
       {/* Action Buttons */}
       <div
         style={{
-          padding: "1.5rem 2rem",
+          padding: showButtonPanel ? "1.5rem 2rem" : "0.5rem 2rem",
           borderTop: "2px solid #e0e0e0",
           backgroundColor: "#fff",
           boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
+          transition: "padding 0.3s ease-in-out, max-height 0.3s ease-in-out",
+          maxHeight: showButtonPanel ? "1000px" : "50px",
+          overflow: "hidden",
+          cursor: "pointer",
         }}
+        onClick={() => setShowButtonPanel(!showButtonPanel)}
       >
+        {/* Drawer Handle */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: showButtonPanel ? "1rem" : "0",
+            paddingBottom: showButtonPanel ? "0.5rem" : "0",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "4px",
+              backgroundColor: "#d0d0d0",
+              borderRadius: "2px",
+            }}
+          />
+        </div>
+
         <div
           style={{
             maxWidth: "1200px",
             margin: "0 auto",
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Time & Amount Picker Toggles */}
-          <div style={{ marginBottom: "1rem" }}>
-            <button
-              onClick={() => setShowTimePicker(!showTimePicker)}
-              style={{
-                padding: "0.5rem 1.25rem",
-                backgroundColor: showTimePicker ? "#4a90e2" : "#e8f4fd",
-                color: showTimePicker ? "#fff" : "#4a90e2",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: "600",
-                fontSize: "0.9rem",
-                width: "100%",
-              }}
-            >
-              {showTimePicker ? "✓ Hide Time Picker" : "⏰ Show Time Picker"}
-            </button>
-          </div>
+          {showButtonPanel && (
+            <>
+              {/* Time & Amount Picker Toggles */}
+              <div style={{ marginBottom: "1rem" }}>
+                <button
+                  onClick={() => setShowTimePicker(!showTimePicker)}
+                  style={{
+                    padding: "0.5rem 1.25rem",
+                    backgroundColor: showTimePicker ? "#4a90e2" : "#e8f4fd",
+                    color: showTimePicker ? "#fff" : "#4a90e2",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "0.9rem",
+                    width: "100%",
+                  }}
+                >
+                  {showTimePicker
+                    ? "✓ Hide Time Picker"
+                    : "⏰ Show Time Picker"}
+                </button>
+              </div>
 
-          {/* Native Time Picker */}
-          {showTimePicker && (
-            <div
-              style={{
-                marginBottom: "1.5rem",
-              }}
-            >
-              <label
+              {/* Native Time Picker */}
+              {showTimePicker && (
+                <div
+                  style={{
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      color: "#333",
+                    }}
+                  >
+                    Time:
+                  </label>
+                  <input
+                    type="time"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    style={{
+                      padding: "0.75rem",
+                      fontSize: "1.1rem",
+                      border: "2px solid #4a90e2",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Log Buttons */}
+              <div
                 style={{
-                  display: "block",
-                  marginBottom: "0.5rem",
-                  fontSize: "0.95rem",
-                  fontWeight: "600",
-                  color: "#333",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1.5rem",
                 }}
+                className="button-grid"
               >
-                Time:
-              </label>
-              <input
-                type="time"
-                value={customTime}
-                onChange={(e) => setCustomTime(e.target.value)}
-                style={{
-                  padding: "0.75rem",
-                  fontSize: "1.1rem",
-                  border: "2px solid #4a90e2",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
-              />
-            </div>
+                {/* Milk Button with Amount Controls */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                  }}
+                  className="milk-controls"
+                >
+                  <button
+                    onClick={() =>
+                      setMilkAmount((prev) => Math.max(10, prev - 10))
+                    }
+                    disabled={loading}
+                    style={{
+                      padding: "1.5rem 1rem",
+                      fontSize: "1.2rem",
+                      fontWeight: "600",
+                      color: "#fff",
+                      backgroundColor: loading ? "#f5a5a5" : "#dc3545",
+                      border: "none",
+                      borderRadius: "12px",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      boxShadow: "0 2px 8px rgba(220,53,69,0.3)",
+                      transition: "all 0.1s",
+                      flex: "0 0 auto",
+                    }}
+                    onMouseDown={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.transform = "scale(0.95)";
+                        e.currentTarget.style.boxShadow =
+                          "0 1px 4px rgba(220,53,69,0.3)";
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(220,53,69,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(220,53,69,0.3)";
+                    }}
+                  >
+                    −
+                  </button>
+                  <button
+                    onClick={() => handleAddFeed("Milk")}
+                    disabled={loading}
+                    style={{
+                      padding: "1.5rem 1rem",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      color: "#fff",
+                      backgroundColor: loading ? "#a0c4e8" : "#4a90e2",
+                      border: "none",
+                      borderRadius: "12px",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      boxShadow: "0 2px 8px rgba(74,144,226,0.3)",
+                      transition: "all 0.1s",
+                      flex: "1",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                    }}
+                    onMouseDown={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.transform = "scale(0.95)";
+                        e.currentTarget.style.boxShadow =
+                          "0 1px 4px rgba(74,144,226,0.3)";
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(74,144,226,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(74,144,226,0.3)";
+                    }}
+                  >
+                    <span style={{ fontSize: "1.2rem" }}>🍼</span>
+                    <span>Log Milk</span>
+                    <span style={{ fontSize: "0.8rem", opacity: 0.9 }}>
+                      ({milkAmount}ml)
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setMilkAmount((prev) => prev + 10)}
+                    disabled={loading}
+                    style={{
+                      padding: "1.5rem 1rem",
+                      fontSize: "1.2rem",
+                      fontWeight: "600",
+                      color: "#fff",
+                      backgroundColor: loading ? "#a8d5a8" : "#28a745",
+                      border: "none",
+                      borderRadius: "12px",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      boxShadow: "0 2px 8px rgba(40,167,69,0.3)",
+                      transition: "all 0.1s",
+                      flex: "0 0 auto",
+                    }}
+                    onMouseDown={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.transform = "scale(0.95)";
+                        e.currentTarget.style.boxShadow =
+                          "0 1px 4px rgba(40,167,69,0.3)";
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(40,167,69,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(40,167,69,0.3)";
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+                <button
+                  onClick={() => handleAddFeed("Feed")}
+                  disabled={loading}
+                  style={{
+                    padding: "1.5rem 1rem",
+                    fontSize: "1.2rem",
+                    fontWeight: "600",
+                    color: "#fff",
+                    backgroundColor: loading ? "#f5c97d" : "#f39c12",
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    boxShadow: "0 2px 8px rgba(243,156,18,0.3)",
+                    transition: "all 0.1s",
+                  }}
+                  onMouseDown={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.transform = "scale(0.95)";
+                      e.currentTarget.style.boxShadow =
+                        "0 1px 4px rgba(243,156,18,0.3)";
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 8px rgba(243,156,18,0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 8px rgba(243,156,18,0.3)";
+                  }}
+                >
+                  🍽️ Log Feed
+                </button>
+              </div>
+            </>
           )}
-
-          {/* Log Buttons */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "1.5rem",
-            }}
-            className="button-grid"
-          >
-            {/* Milk Button with Amount Controls */}
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-              }}
-              className="milk-controls"
-            >
-              <button
-                onClick={() => setMilkAmount((prev) => Math.max(10, prev - 10))}
-                disabled={loading}
-                style={{
-                  padding: "1.5rem 1rem",
-                  fontSize: "1.2rem",
-                  fontWeight: "600",
-                  color: "#fff",
-                  backgroundColor: loading ? "#f5a5a5" : "#dc3545",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 8px rgba(220,53,69,0.3)",
-                  transition: "all 0.1s",
-                  flex: "0 0 auto",
-                }}
-                onMouseDown={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = "scale(0.95)";
-                    e.currentTarget.style.boxShadow =
-                      "0 1px 4px rgba(220,53,69,0.3)";
-                  }
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(220,53,69,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(220,53,69,0.3)";
-                }}
-              >
-                −
-              </button>
-              <button
-                onClick={() => handleAddFeed("Milk")}
-                disabled={loading}
-                style={{
-                  padding: "1.5rem 1rem",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                  color: "#fff",
-                  backgroundColor: loading ? "#a0c4e8" : "#4a90e2",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 8px rgba(74,144,226,0.3)",
-                  transition: "all 0.1s",
-                  flex: "1",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                }}
-                onMouseDown={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = "scale(0.95)";
-                    e.currentTarget.style.boxShadow =
-                      "0 1px 4px rgba(74,144,226,0.3)";
-                  }
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(74,144,226,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(74,144,226,0.3)";
-                }}
-              >
-                <span style={{ fontSize: "1.2rem" }}>🍼</span>
-                <span>Log Milk</span>
-                <span style={{ fontSize: "0.8rem", opacity: 0.9 }}>
-                  ({milkAmount}ml)
-                </span>
-              </button>
-              <button
-                onClick={() => setMilkAmount((prev) => prev + 10)}
-                disabled={loading}
-                style={{
-                  padding: "1.5rem 1rem",
-                  fontSize: "1.2rem",
-                  fontWeight: "600",
-                  color: "#fff",
-                  backgroundColor: loading ? "#a8d5a8" : "#28a745",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 8px rgba(40,167,69,0.3)",
-                  transition: "all 0.1s",
-                  flex: "0 0 auto",
-                }}
-                onMouseDown={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = "scale(0.95)";
-                    e.currentTarget.style.boxShadow =
-                      "0 1px 4px rgba(40,167,69,0.3)";
-                  }
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(40,167,69,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(40,167,69,0.3)";
-                }}
-              >
-                +
-              </button>
-            </div>
-            <button
-              onClick={() => handleAddFeed("Feed")}
-              disabled={loading}
-              style={{
-                padding: "1.5rem 1rem",
-                fontSize: "1.2rem",
-                fontWeight: "600",
-                color: "#fff",
-                backgroundColor: loading ? "#f5c97d" : "#f39c12",
-                border: "none",
-                borderRadius: "12px",
-                cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 2px 8px rgba(243,156,18,0.3)",
-                transition: "all 0.1s",
-              }}
-              onMouseDown={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.transform = "scale(0.95)";
-                  e.currentTarget.style.boxShadow =
-                    "0 1px 4px rgba(243,156,18,0.3)";
-                }
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 2px 8px rgba(243,156,18,0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 2px 8px rgba(243,156,18,0.3)";
-              }}
-            >
-              🍽️ Log Feed
-            </button>
-          </div>
         </div>
       </div>
     </main>
