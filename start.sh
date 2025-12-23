@@ -6,6 +6,7 @@ CONFIG_PATH="/data/options.json"
 if [ -f "$CONFIG_PATH" ]; then
     CFG_DB_URL=$(jq -r '.database_url // empty' $CONFIG_PATH)
     CFG_PORT=$(jq -r '.port // empty' $CONFIG_PATH)
+    CFG_SLACK_WEBHOOK=$(jq -r '.slack_webhook_url // empty' $CONFIG_PATH)
 fi
 
 # 2. Prepare Database Path
@@ -24,6 +25,10 @@ else
 fi
 
 export PORT="${CFG_PORT:-3001}"
+
+if [ -n "$CFG_SLACK_WEBHOOK" ]; then
+    export SLACK_WEBHOOK_URL="$CFG_SLACK_WEBHOOK"
+fi
 
 # 4. Generate Prisma Client
 cd /app

@@ -13,8 +13,10 @@ map:
 options:
   database_url: ""
   port: 3001
+  slack_webhook_url: ""
 schema:
   database_url: "str"
   port: "port"
+  slack_webhook_url: "str?"
 arch:
   - aarch64

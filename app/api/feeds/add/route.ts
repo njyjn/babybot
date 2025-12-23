@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifySlack } from "@/lib/slack";
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +42,27 @@ export async function POST(request: Request) {
         feedType: true,
       },
     });
+
+    // Send Slack notification
+    const emoji = feedType === "Milk" ? "🍼" : "🍽️";
+    const message = `${emoji} *${feedType} logged*`;
+    const details: Record<string, string> = {
+      Time: feedTime.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+    };
+
+    if (amountMl) {
+      details["Amount"] = `${Math.round(amountMl)} ml`;
+    }
+
+    if (notes) {
+      details["Notes"] = notes;
+    }
+
+    await notifySlack(message, details);
 
     return NextResponse.json({ success: true, feed });
   } catch (error) {
