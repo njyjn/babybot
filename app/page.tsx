@@ -263,6 +263,24 @@ export default function Home() {
             grid-template-columns: 1fr !important;
           }
         }
+        .summary-view {
+          scrollbar-width: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .summary-view::-webkit-scrollbar {
+          width: 8px;
+        }
+        .summary-view::-webkit-scrollbar-track {
+          background: #f0f0f0;
+          border-radius: 10px;
+        }
+        .summary-view::-webkit-scrollbar-thumb {
+          background: #ccc;
+          border-radius: 10px;
+        }
+        .summary-view::-webkit-scrollbar-thumb:hover {
+          background: #999;
+        }
       `}</style>
       {/* Header with Date Navigation */}
       <div
@@ -682,7 +700,11 @@ export default function Home() {
                 gap: "2rem",
                 maxWidth: "600px",
                 margin: "3rem auto",
+                maxHeight: "calc(100vh - 400px)",
+                overflowY: "auto",
+                paddingRight: "0.5rem",
               }}
+              className="summary-view"
             >
               <div
                 style={{
@@ -855,14 +877,14 @@ export default function Home() {
             <button
               onClick={() => setShowTimePicker(!showTimePicker)}
               style={{
-                padding: "0.75rem 1.5rem",
+                padding: "0.5rem 1.25rem",
                 backgroundColor: showTimePicker ? "#4a90e2" : "#e8f4fd",
                 color: showTimePicker ? "#fff" : "#4a90e2",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "600",
-                fontSize: "1rem",
+                fontSize: "0.9rem",
                 width: "100%",
               }}
             >
@@ -924,8 +946,8 @@ export default function Home() {
                 onClick={() => setMilkAmount((prev) => Math.max(10, prev - 10))}
                 disabled={loading}
                 style={{
-                  padding: "2rem 1.5rem",
-                  fontSize: "1.5rem",
+                  padding: "1.5rem 1rem",
+                  fontSize: "1.2rem",
                   fontWeight: "600",
                   color: "#fff",
                   backgroundColor: loading ? "#f5a5a5" : "#dc3545",
@@ -960,8 +982,8 @@ export default function Home() {
                 onClick={() => handleAddFeed("Milk")}
                 disabled={loading}
                 style={{
-                  padding: "2rem",
-                  fontSize: "1.2rem",
+                  padding: "1.5rem 1rem",
+                  fontSize: "1rem",
                   fontWeight: "600",
                   color: "#fff",
                   backgroundColor: loading ? "#a0c4e8" : "#4a90e2",
@@ -994,9 +1016,9 @@ export default function Home() {
                     "0 2px 8px rgba(74,144,226,0.3)";
                 }}
               >
-                <span style={{ fontSize: "1.5rem" }}>🍼</span>
+                <span style={{ fontSize: "1.2rem" }}>🍼</span>
                 <span>Log Milk</span>
-                <span style={{ fontSize: "1rem", opacity: 0.9 }}>
+                <span style={{ fontSize: "0.8rem", opacity: 0.9 }}>
                   ({milkAmount}ml)
                 </span>
               </button>
@@ -1004,8 +1026,8 @@ export default function Home() {
                 onClick={() => setMilkAmount((prev) => prev + 10)}
                 disabled={loading}
                 style={{
-                  padding: "2rem 1.5rem",
-                  fontSize: "1.5rem",
+                  padding: "1.5rem 1rem",
+                  fontSize: "1.2rem",
                   fontWeight: "600",
                   color: "#fff",
                   backgroundColor: loading ? "#a8d5a8" : "#28a745",
@@ -1041,8 +1063,8 @@ export default function Home() {
               onClick={() => handleAddFeed("Feed")}
               disabled={loading}
               style={{
-                padding: "2rem",
-                fontSize: "1.5rem",
+                padding: "1.5rem 1rem",
+                fontSize: "1.2rem",
                 fontWeight: "600",
                 color: "#fff",
                 backgroundColor: loading ? "#f5c97d" : "#f39c12",
