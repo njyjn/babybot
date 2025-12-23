@@ -32,7 +32,7 @@ jobs:
           TAG="v$VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
-          
+
           # Create and push tag if it doesn't exist
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
             git config user.name "github-actions[bot]"

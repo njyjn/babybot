@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 
 interface Feed {
   id: number;
@@ -17,9 +18,9 @@ interface Baby {
   name: string;
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function Home() {
-  const [feeds, setFeeds] = useState<Feed[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [customTime, setCustomTime] = useState(() => {
     const now = new Date();
@@ -27,40 +28,42 @@ export default function Home() {
   });
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [milkAmount, setMilkAmount] = useState(150);
-  const [babies, setBabies] = useState<Baby[]>([]);
-  const [selectedBabyId, setSelectedBabyId] = useState<number | null>(null);
   const [newBabyName, setNewBabyName] = useState("");
   const [showNewBabyForm, setShowNewBabyForm] = useState(false);
   const [editingBabyId, setEditingBabyId] = useState<number | null>(null);
   const [editingBabyName, setEditingBabyName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedBabyId, setSelectedBabyId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"log" | "summary">("summary");
 
-  const fetchFeeds = async (date: Date) => {
-    try {
-      const dateStr = date.toISOString().split("T")[0];
-      const response = await fetch(`/api/feeds/today?date=${dateStr}`);
-      const json = await response.json();
-      if (json.success) {
-        setFeeds(json.feeds);
-      }
-    } catch (error) {
-      console.error("Error fetching feeds:", error);
-    }
+  const toLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
-  const fetchBabies = async () => {
-    try {
-      const response = await fetch("/api/babies");
-      const json = await response.json();
-      if (json.success) {
-        setBabies(json.babies);
-        if (json.babies.length > 0 && !selectedBabyId) {
-          setSelectedBabyId(json.babies[0].id);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching babies:", error);
+  // Fetch feeds with SWR
+  const { data: feedsData, mutate: mutateFeedsData } = useSWR(
+    `/api/feeds/today?date=${toLocalDateString(selectedDate)}`,
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+  const feeds = feedsData?.feeds || [];
+
+  // Fetch babies with SWR
+  const { data: babiesData, mutate: mutateBabiesData } = useSWR(
+    "/api/babies",
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+  const babies = babiesData?.babies || [];
+
+  useEffect(() => {
+    if (babies.length > 0 && !selectedBabyId) {
+      setSelectedBabyId(babies[0].id);
     }
-  };
+  }, [babies, selectedBabyId]);
 
   const createBaby = async () => {
     if (!newBabyName.trim()) return;
@@ -76,7 +79,7 @@ export default function Home() {
       if (json.success) {
         setNewBabyName("");
         setShowNewBabyForm(false);
-        await fetchBabies();
+        await mutateBabiesData();
         setSelectedBabyId(json.baby.id);
       }
     } catch (error) {
@@ -98,7 +101,7 @@ export default function Home() {
       if (json.success) {
         setEditingBabyId(null);
         setEditingBabyName("");
-        await fetchBabies();
+        await mutateBabiesData();
       }
     } catch (error) {
       console.error("Error renaming baby:", error);
@@ -106,12 +109,28 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchBabies();
-  }, []);
+    if (babies.length > 0 && !selectedBabyId) {
+      setSelectedBabyId(babies[0].id);
+    }
+  }, [babies, selectedBabyId]);
 
   useEffect(() => {
-    fetchFeeds(selectedDate);
-  }, [selectedDate]);
+    const checkMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+
+      const timeout = setTimeout(() => {
+        setSelectedDate(new Date());
+      }, timeUntilMidnight);
+
+      return () => clearTimeout(timeout);
+    };
+
+    return checkMidnight();
+  }, []);
 
   const handleAddFeed = async (feedType: string) => {
     if (loading) return;
@@ -119,7 +138,7 @@ export default function Home() {
     setLoading(true);
     try {
       const feedTime = customTime
-        ? new Date(`${selectedDate.toISOString().split("T")[0]}T${customTime}`)
+        ? new Date(`${toLocalDateString(selectedDate)}T${customTime}`)
         : new Date();
       // Use milkAmount for Milk feeds, null for other feeds
       const amountValue = feedType === "Milk" ? milkAmount : null;
@@ -136,7 +155,7 @@ export default function Home() {
 
       const json = await response.json();
       if (json.success) {
-        await fetchFeeds(selectedDate);
+        await mutateFeedsData();
         // Reset time to NOW after adding
         const now = new Date();
         setCustomTime(now.toTimeString().slice(0, 5));
@@ -158,7 +177,7 @@ export default function Home() {
 
       const json = await response.json();
       if (json.success) {
-        await fetchFeeds(selectedDate);
+        await mutateFeedsData();
       }
     } catch (error) {
       console.error("Error deleting feed:", error);
@@ -238,6 +257,13 @@ export default function Home() {
         backgroundColor: "#f8f9fa",
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .button-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       {/* Header with Date Navigation */}
       <div
         style={{
@@ -283,7 +309,7 @@ export default function Home() {
         <div
           style={{
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             justifyContent: "center",
             gap: "0",
             maxWidth: "1200px",
@@ -293,7 +319,7 @@ export default function Home() {
           <button
             onClick={() => changeDate(-1)}
             style={{
-              padding: "0.8rem 1.5rem",
+              padding: "1.25rem 1.5rem",
               fontSize: "2rem",
               color: "#333",
               backgroundColor: "#f8f9fa",
@@ -302,40 +328,34 @@ export default function Home() {
               borderRadius: "12px 0 0 12px",
               cursor: "pointer",
               fontWeight: "bold",
+              height: "60px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             ‹
           </button>
 
-          <div style={{ textAlign: "center" }}>
-            <input
-              type="date"
-              value={selectedDate.toISOString().split("T")[0]}
-              onChange={(e) => setSelectedDate(new Date(e.target.value))}
-              style={{
-                padding: "1.25rem 1.5rem",
-                fontSize: "1.1rem",
-                border: "1px solid #e0e0e0",
-                borderRadius: "6px",
-                minWidth: "200px",
-              }}
-            />
-            <div
-              style={{
-                fontSize: "0.9rem",
-                color: "#666",
-                marginTop: "0.5rem",
-                fontWeight: "500",
-              }}
-            >
-              {formatDateDisplay(selectedDate)}
-            </div>
-          </div>
+          <input
+            type="date"
+            value={toLocalDateString(selectedDate)}
+            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+            style={{
+              padding: "1.25rem 1.5rem",
+              fontSize: "1.1rem",
+              border: "1px solid #e0e0e0",
+              borderRadius: "0",
+              minWidth: "200px",
+              height: "60px",
+              boxSizing: "border-box",
+            }}
+          />
 
           <button
             onClick={() => changeDate(1)}
             style={{
-              padding: "0.8rem 1.5rem",
+              padding: "1.25rem 1.5rem",
               fontSize: "2rem",
               color: "#333",
               backgroundColor: "#f8f9fa",
@@ -344,6 +364,10 @@ export default function Home() {
               borderRadius: "0 12px 12px 0",
               cursor: "pointer",
               fontWeight: "bold",
+              height: "60px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             ›
@@ -364,7 +388,7 @@ export default function Home() {
               overflow: "auto",
             }}
           >
-            {babies.map((baby) => (
+            {babies.map((baby: Baby) => (
               <div
                 key={baby.id}
                 style={{ position: "relative", flex: "shrink" }}
@@ -467,141 +491,345 @@ export default function Home() {
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          {feeds.length === 0 ? (
-            <p
+          {/* View Mode Toggle */}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              marginBottom: "2rem",
+              justifyContent: "center",
+            }}
+          >
+            <button
+              onClick={() => setViewMode("summary")}
               style={{
-                textAlign: "center",
-                color: "#999",
-                marginTop: "2rem",
-                fontSize: "1.1rem",
+                padding: "0.75rem 1.5rem",
+                backgroundColor: viewMode === "summary" ? "#4a90e2" : "#e8f4fd",
+                color: viewMode === "summary" ? "#fff" : "#4a90e2",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "0.95rem",
               }}
             >
-              No events on this day
-            </p>
-          ) : (
-            <div
+              Summary
+            </button>
+            <button
+              onClick={() => setViewMode("log")}
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.75rem",
+                padding: "0.75rem 1.5rem",
+                backgroundColor: viewMode === "log" ? "#4a90e2" : "#e8f4fd",
+                color: viewMode === "log" ? "#fff" : "#4a90e2",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "0.95rem",
               }}
             >
-              {feeds.map((feed) => (
-                <div
-                  key={feed.id}
-                  style={{
-                    padding: "1.25rem",
-                    backgroundColor: "#fff",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: "12px",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                    position: "relative",
-                  }}
-                >
-                  <button
-                    onClick={() => handleDeleteFeed(feed.id)}
-                    style={{
-                      position: "absolute",
-                      top: "0.75rem",
-                      right: "0.75rem",
-                      padding: "0.25rem 0.5rem",
-                      fontSize: "0.85rem",
-                      color: "#dc3545",
-                      backgroundColor: "transparent",
-                      border: "0px solid #dc3545",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      opacity: 0.7,
-                      transition: "opacity 0.2s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.opacity = "0.7")
-                    }
-                  >
-                    ❌
-                  </button>
+              Log
+            </button>
+          </div>
+
+          {viewMode === "log" ? (
+            // Log View
+            feeds.length === 0 ? (
+              <p
+                style={{
+                  textAlign: "center",
+                  color: "#999",
+                  marginTop: "2rem",
+                  fontSize: "1.1rem",
+                }}
+              >
+                No events on this day
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                }}
+              >
+                {feeds.map((feed: Feed) => (
                   <div
+                    key={feed.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "0.5rem",
+                      padding: "1.25rem",
+                      backgroundColor: "#fff",
+                      border: "1px solid #e0e0e0",
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                      position: "relative",
                     }}
                   >
+                    <button
+                      onClick={() => handleDeleteFeed(feed.id)}
+                      style={{
+                        position: "absolute",
+                        top: "0.75rem",
+                        right: "0.75rem",
+                        padding: "0.25rem 0.5rem",
+                        fontSize: "0.85rem",
+                        color: "#dc3545",
+                        backgroundColor: "transparent",
+                        border: "0px solid #dc3545",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        opacity: 0.7,
+                        transition: "opacity 0.2s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.opacity = "1")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.opacity = "0.7")
+                      }
+                    >
+                      ❌
+                    </button>
                     <div
                       style={{
                         display: "flex",
-                        alignItems: "center",
-                        gap: "0.75rem",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        marginBottom: "0.5rem",
                       }}
                     >
                       <div
                         style={{
-                          fontSize: "2rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
                         }}
                       >
-                        {feed.feedType.name === "Milk" ? "🍼" : "🍽️"}
-                      </div>
-                      <div>
                         <div
                           style={{
-                            fontSize: "1.2rem",
-                            fontWeight: "600",
-                            color: "#333",
+                            fontSize: "2rem",
                           }}
                         >
-                          {feed.feedType.name}
+                          {feed.feedType.name === "Milk" ? "🍼" : "🍽️"}
                         </div>
-                        {feed.feedType.name === "Milk" &&
-                          typeof feed.amountMl === "number" && (
-                            <div
-                              style={{
-                                fontSize: "1rem",
-                                color: "#4a90e2",
-                                marginTop: "0.15rem",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {Math.round(feed.amountMl)} ml
-                            </div>
-                          )}
-                        <div
-                          style={{
-                            fontSize: "1rem",
-                            color: "#666",
-                            marginTop: "0.15rem",
-                          }}
-                        >
-                          {formatTime(feed.startTime)}
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "1.2rem",
+                              fontWeight: "600",
+                              color: "#333",
+                            }}
+                          >
+                            {feed.feedType.name}
+                          </div>
+                          {feed.feedType.name === "Milk" &&
+                            typeof feed.amountMl === "number" && (
+                              <div
+                                style={{
+                                  fontSize: "1rem",
+                                  color: "#4a90e2",
+                                  marginTop: "0.15rem",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {Math.round(feed.amountMl)} ml
+                              </div>
+                            )}
+                          <div
+                            style={{
+                              fontSize: "1rem",
+                              color: "#666",
+                              marginTop: "0.15rem",
+                            }}
+                          >
+                            {formatTime(feed.startTime)}
+                          </div>
                         </div>
                       </div>
                     </div>
+                    {isToday() && (
+                      <div
+                        style={{
+                          fontSize: "0.9rem",
+                          color: "#999",
+                          marginTop: "0.5rem",
+                        }}
+                      >
+                        {getTimeSince(feed.startTime)}
+                      </div>
+                    )}
+                    {feed.notes && (
+                      <div
+                        style={{
+                          marginTop: "0.5rem",
+                          fontSize: "0.95rem",
+                          color: "#666",
+                        }}
+                      >
+                        {feed.notes}
+                      </div>
+                    )}
                   </div>
-                  {isToday() && (
-                    <div
-                      style={{
-                        fontSize: "0.9rem",
-                        color: "#999",
-                        marginTop: "0.5rem",
-                      }}
-                    >
-                      {getTimeSince(feed.startTime)}
-                    </div>
-                  )}
-                  {feed.notes && (
-                    <div
-                      style={{
-                        marginTop: "0.5rem",
-                        fontSize: "0.95rem",
-                        color: "#666",
-                      }}
-                    >
-                      {feed.notes}
-                    </div>
-                  )}
+                ))}
+              </div>
+            )
+          ) : (
+            // Summary View
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "2rem",
+                maxWidth: "600px",
+                margin: "3rem auto",
+              }}
+            >
+              <div
+                style={{
+                  padding: "2rem",
+                  backgroundColor: "#fff",
+                  border: "2px solid #4a90e2",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 2px 8px rgba(74,144,226,0.1)",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>
+                    🍼
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "2.5rem",
+                      fontWeight: "700",
+                      color: "#4a90e2",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {
+                      feeds.filter((f: Feed) => f.feedType.name === "Milk")
+                        .length
+                    }
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Milk Feeds
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      color: "#999",
+                      marginTop: "1rem",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    Total:{" "}
+                    {Math.round(
+                      feeds
+                        .filter((f: Feed) => f.feedType.name === "Milk")
+                        .reduce(
+                          (sum: number, f: Feed) => sum + (f.amountMl || 0),
+                          0,
+                        ),
+                    )}{" "}
+                    ml
+                  </div>
                 </div>
-              ))}
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "#999",
+                    marginTop: "auto",
+                    paddingTop: "1rem",
+                    borderTop: "1px solid #eee",
+                  }}
+                >
+                  Last:{" "}
+                  {feeds.filter((f: Feed) => f.feedType.name === "Milk")
+                    .length > 0
+                    ? formatTime(
+                        feeds
+                          .filter((f: Feed) => f.feedType.name === "Milk")
+                          .sort(
+                            (a: Feed, b: Feed) =>
+                              new Date(b.startTime).getTime() -
+                              new Date(a.startTime).getTime(),
+                          )[0].startTime,
+                      )
+                    : "—"}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "2rem",
+                  backgroundColor: "#fff",
+                  border: "2px solid #f39c12",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 2px 8px rgba(243,156,18,0.1)",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>
+                    🍽️
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "2.5rem",
+                      fontWeight: "700",
+                      color: "#f39c12",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {
+                      feeds.filter((f: Feed) => f.feedType.name === "Feed")
+                        .length
+                    }
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Meal Feeds
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "#999",
+                    marginTop: "auto",
+                    paddingTop: "1rem",
+                    borderTop: "1px solid #eee",
+                  }}
+                >
+                  Last:{" "}
+                  {feeds.filter((f: Feed) => f.feedType.name === "Feed")
+                    .length > 0
+                    ? formatTime(
+                        feeds
+                          .filter((f: Feed) => f.feedType.name === "Feed")
+                          .sort(
+                            (a: Feed, b: Feed) =>
+                              new Date(b.startTime).getTime() -
+                              new Date(a.startTime).getTime(),
+                          )[0].startTime,
+                      )
+                    : "—"}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -682,6 +910,7 @@ export default function Home() {
               gridTemplateColumns: "1fr 1fr",
               gap: "1.5rem",
             }}
+            className="button-grid"
           >
             {/* Milk Button with Amount Controls */}
             <div
@@ -689,6 +918,7 @@ export default function Home() {
                 display: "flex",
                 gap: "0.5rem",
               }}
+              className="milk-controls"
             >
               <button
                 onClick={() => setMilkAmount((prev) => Math.max(10, prev - 10))}
