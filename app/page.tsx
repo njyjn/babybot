@@ -3,6 +3,21 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 
+const getNowTimeString = () => {
+  const now = new Date();
+  return now.toTimeString().slice(0, 5);
+};
+
+const combineDateAndTime = (date: Date, time: string) => {
+  const [hours, minutes] = time.split(":").map((value) => Number(value));
+  const safeHours = Number.isNaN(hours) ? 0 : hours;
+  const safeMinutes = Number.isNaN(minutes) ? 0 : minutes;
+
+  const withTime = new Date(date);
+  withTime.setHours(safeHours, safeMinutes, 0, 0);
+  return withTime;
+};
+
 interface Feed {
   id: number;
   startTime: string;
@@ -22,10 +37,8 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Home() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [customTime, setCustomTime] = useState(() => {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5);
-  });
+  const [customTime, setCustomTime] = useState(() => getNowTimeString());
+  const [isCustomTimeLocked, setIsCustomTimeLocked] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [milkAmount, setMilkAmount] = useState(150);
   const [newBabyName, setNewBabyName] = useState("");
@@ -139,8 +152,10 @@ export default function Home() {
 
     setLoading(true);
     try {
-      // Always use current time when button is pressed
-      const feedTime = new Date();
+      const feedTimeCandidate = combineDateAndTime(selectedDate, customTime);
+      const feedTime = Number.isNaN(feedTimeCandidate.getTime())
+        ? new Date()
+        : feedTimeCandidate;
 
       // Use milkAmount for Milk feeds, null for other feeds
       const amountValue = feedType === "Milk" ? milkAmount : null;
@@ -158,9 +173,9 @@ export default function Home() {
       const json = await response.json();
       if (json.success) {
         await mutateFeedsData();
-        // Reset time to NOW after adding
-        const now = new Date();
-        setCustomTime(now.toTimeString().slice(0, 5));
+        if (shouldAutoUseNow()) {
+          setCustomTime(getNowTimeString());
+        }
       }
     } catch (error) {
       console.error("Error adding feed:", error);
@@ -243,15 +258,21 @@ export default function Home() {
     return compare.getTime() === today.getTime();
   };
 
-  const updateTime = () => {
-    const now = new Date();
-    setCustomTime(now.toTimeString().slice(0, 5));
+  const shouldAutoUseNow = () => isToday() && !isCustomTimeLocked;
+
+  const refreshTimeToNow = () => {
+    if (!shouldAutoUseNow()) return;
+    setCustomTime(getNowTimeString());
   };
 
-  const handleTimeChange = (hours: number, minutes: number) => {
-    const h = String(hours).padStart(2, "0");
-    const m = String(minutes).padStart(2, "0");
-    setCustomTime(`${h}:${m}`);
+  const handleManualTimeChange = (value: string) => {
+    setCustomTime(value);
+    setIsCustomTimeLocked(true);
+  };
+
+  const resetTimeLock = () => {
+    setIsCustomTimeLocked(false);
+    setCustomTime(getNowTimeString());
   };
 
   const handleDrawerMouseDown = (e: React.MouseEvent) => {
@@ -948,7 +969,7 @@ export default function Home() {
               <div style={{ marginBottom: "1rem" }}>
                 <button
                   onClick={() => {
-                    updateTime();
+                    refreshTimeToNow();
                     setShowTimePicker(!showTimePicker);
                   }}
                   style={{
@@ -990,7 +1011,7 @@ export default function Home() {
                   <input
                     type="time"
                     value={customTime}
-                    onChange={(e) => setCustomTime(e.target.value)}
+                    onChange={(e) => handleManualTimeChange(e.target.value)}
                     style={{
                       padding: "0.75rem",
                       fontSize: "1.1rem",
@@ -999,6 +1020,37 @@ export default function Home() {
                       cursor: "pointer",
                     }}
                   />
+                  <div
+                    style={{
+                      marginTop: "0.5rem",
+                      display: "flex",
+                      gap: "0.75rem",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ fontSize: "0.9rem", color: "#666" }}>
+                      {isCustomTimeLocked
+                        ? "Using selected time"
+                        : "Following current time"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={resetTimeLock}
+                      style={{
+                        padding: "0.35rem 0.75rem",
+                        fontSize: "0.85rem",
+                        backgroundColor: "#f0f7ff",
+                        color: "#2c6ac7",
+                        border: "1px solid #d6e6ff",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Use current time
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1021,7 +1073,7 @@ export default function Home() {
                 >
                   <button
                     onClick={() => {
-                      updateTime();
+                      refreshTimeToNow();
                       setMilkAmount((prev) => Math.max(10, prev - 10));
                     }}
                     disabled={loading}
@@ -1060,7 +1112,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      updateTime();
+                      refreshTimeToNow();
                       handleAddFeed("Milk");
                     }}
                     disabled={loading}
@@ -1107,7 +1159,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      updateTime();
+                      refreshTimeToNow();
                       setMilkAmount((prev) => prev + 10);
                     }}
                     disabled={loading}
@@ -1147,7 +1199,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={() => {
-                    updateTime();
+                    refreshTimeToNow();
                     handleAddFeed("Feed");
                   }}
                   disabled={loading}
